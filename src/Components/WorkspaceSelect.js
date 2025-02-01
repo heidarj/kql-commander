@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Button, Field, Tag, TagPicker, TagPickerControl, TagPickerGroup, TagPickerInput, TagPickerList, TagPickerOption } from '@fluentui/react-components';
+import ErrorView from "./Error";
 
 
 export default function WorkspaceSelect({ availableWorkspaces, setAvailableWorkspaces, selectedWorkspaces, setSelectedWorkspaces, msalInstance }) {
@@ -48,13 +49,12 @@ export default function WorkspaceSelect({ availableWorkspaces, setAvailableWorks
 				setAvailableWorkspaces(data.data);
 				setSelectedWorkspaces(data.data);
 			} catch (err) {
-				console.error("Error querying Resource Graph:", err);
-				setError(err.message);
+				setError(err);
 			}
 		};
 
 		fetchWorkspaces();
-	}, []);
+	}, [msalInstance, setAvailableWorkspaces, setSelectedWorkspaces]);
 
 	const onOptionSelect = (event, data) => {
 		if (data.value === "no-options") {
@@ -72,55 +72,60 @@ export default function WorkspaceSelect({ availableWorkspaces, setAvailableWorks
 		}
 	};
 
+
+
 	return (
-		<Field label="Select workspaces" >
-			<TagPicker
-				onOptionSelect={onOptionSelect}
-				selectedOptions={selectedWorkspaces}
-			>
-				<TagPickerControl
-					secondaryAction={
-						<Button
-							appearance="transparent"
-							size="small"
-							shape="rounded"
-							onClick={handleAllClear}
-						>
-							{selectedWorkspaces.length > 0 ? "Clear All" : "Select All"}
-						</Button>
-					}
+		<div>
+			{error && <ErrorView error={error} />}
+			<Field label="Select workspaces" >
+				<TagPicker
+					onOptionSelect={onOptionSelect}
+					selectedOptions={selectedWorkspaces}
 				>
-					<TagPickerGroup aria-label="Selected workspaces">
-						{selectedWorkspaces.map((option) => (
-							<Tag
-								key={option}
+					<TagPickerControl
+						secondaryAction={
+							<Button
+								appearance="transparent"
+								size="small"
 								shape="rounded"
-								value={option}
+								onClick={handleAllClear}
 							>
-								{option.name}
-							</Tag>
-						))}
-					</TagPickerGroup>
-					<TagPickerInput aria-label="Select workspaces" />
-				</TagPickerControl>
-				<TagPickerList>
-					{tagPickerOptions.length > 0 ? (
-						tagPickerOptions.map((option) => (
-							<TagPickerOption
-								secondaryContent={option.id}
-								value={option}
-								key={option}
-							>
-								{option.name}
+								{selectedWorkspaces.length > 0 ? "Clear All" : "Select All"}
+							</Button>
+						}
+					>
+						<TagPickerGroup aria-label="Selected workspaces">
+							{selectedWorkspaces.map((option) => (
+								<Tag
+									key={option}
+									shape="rounded"
+									value={option}
+								>
+									{option.name}
+								</Tag>
+							))}
+						</TagPickerGroup>
+						<TagPickerInput aria-label="Select workspaces" />
+					</TagPickerControl>
+					<TagPickerList>
+						{tagPickerOptions.length > 0 ? (
+							tagPickerOptions.map((option) => (
+								<TagPickerOption
+									secondaryContent={option.id}
+									value={option}
+									key={option}
+								>
+									{option.name}
+								</TagPickerOption>
+							))
+						) : (
+							<TagPickerOption value="no-options">
+								No options available
 							</TagPickerOption>
-						))
-					) : (
-						<TagPickerOption value="no-options">
-							No options available
-						</TagPickerOption>
-					)}
-				</TagPickerList>
-			</TagPicker>
-		</Field>
+						)}
+					</TagPickerList>
+				</TagPicker>
+			</Field>
+		</div>
 	)
 }
