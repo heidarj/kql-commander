@@ -28,12 +28,15 @@ function LogAnalyticsDashboard() {
 	// We'll store the history of queries as an array of objects.
 	// Each object: { time: string, query: string, workspaces: string[] }
 	const [queryHistory, setQueryHistory] = useState([]);
+	// add timespan selection state with default of last 24 hours
+	const [timespan, setTimespan] = useState('P1D');
 
 
 	// Placeholder for actually running the query.
 	async function runQuery() {
 		setLoading(true);
-		Query(query, selectedWorkspaces, instance).then((res) => {
+		// include timespan in the query call
+		Query(query, selectedWorkspaces, instance, timespan).then((res) => {
 			setColumns(res.tables[0].columns);
 			setRows(res.tables[0].rows);
 			// Create new query entry with the current time.
@@ -41,6 +44,7 @@ function LogAnalyticsDashboard() {
 				time: new Date().toLocaleTimeString("en-GB"),
 				query,
 				workspaces: selectedWorkspaces,
+                timespan,
 			};
 			// Update queryHistory: remove duplicate and add newEntry at the beginning.
 			setQueryHistory((prev) => {
@@ -66,13 +70,27 @@ function LogAnalyticsDashboard() {
 	return (
 		<div className="flex h-screen">
 			{/* Sidebar */}
-			<Sidebar queryHistory={queryHistory} setQuery={setQuery} setSelectedWorkspaces={setSelectedWorkspaces} />
+			<Sidebar queryHistory={queryHistory} setQuery={setQuery} setSelectedWorkspaces={setSelectedWorkspaces} setTimespan={setTimespan} />
 			<div className="flex-1 w-64 p-4 overflow-y-auto">
 				<h1 className="text-2xl font-bold mb-4">Log Analytics Query Results</h1>
 
 				<div className="flex flex-col gap-4 mb-4">
 					<WorkspaceSelect availableWorkspaces={availableWorkspaces} setAvailableWorkspaces={setAvailableWorkspaces} selectedWorkspaces={selectedWorkspaces} setSelectedWorkspaces={setSelectedWorkspaces} msalInstance={instance} />
-
+					{/* Time range selector */}
+					<div>
+						<div className="mb-2">Time Range:</div>
+						<select value={timespan} onChange={(e) => setTimespan(e.target.value)} className="px-2 py-1 border w-full">
+							<option value="">Set in query</option>
+							<option value="PT1H">Last 1 hour</option>
+							<option value="PT4H">Last 4 hours</option>
+							<option value="PT12H">Last 12 hours</option>
+							<option value="P1D">Last 24 hours</option>
+							<option value="P2D">Last 2 days</option>
+							<option value="P3D">Last 3 days</option>
+							<option value="P7D">Last 7 days</option>
+							<option value="P30D">Last 30 days</option>
+						</select>
+					</div>
 					{/* Multiline query text area */}
 					<div>
 						<div className="mb-2">Query:</div>
