@@ -1,15 +1,15 @@
+import { logAnalyticsRequest, acquireTokenWithFallback } from './AuthHelper';
+
 export async function Query(query, selectedWorkspaces, msalInstance, timespan = 'P1D') {
-    // Acquire token silently using MSAL
-    const tokenRequest = {
-      scopes: ["https://api.loganalytics.io/Data.Read"]
-    };
-    const tokenResponse = await msalInstance.acquireTokenSilent(tokenRequest);
+    // Acquire token for Log Analytics with silent first and interactive fallback
+    const tokenResponse = await acquireTokenWithFallback(msalInstance, logAnalyticsRequest);
     const accessToken = tokenResponse.accessToken;
 
     // Build request body, include timespan only if provided
     const payload = {
       query: query,
-      workspaces: selectedWorkspaces.map(ws => ws.name)
+      workspaces: selectedWorkspaces.map(ws => ws.name),
+      maxRows: 1001
     };
     if (timespan) payload.timespan = timespan;
     const response = await fetch(

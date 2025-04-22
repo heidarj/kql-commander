@@ -3,7 +3,7 @@
  * Licensed under the MIT License.
  */
 
-import { LogLevel } from '@azure/msal-browser';
+import { LogLevel, InteractionRequiredAuthError } from '@azure/msal-browser';
 
 /**
  * Configuration object to be passed to MSAL instance on creation. 
@@ -13,8 +13,8 @@ import { LogLevel } from '@azure/msal-browser';
 
 export const msalConfig = {
     auth: {
-        clientId: '092adfbe-0641-4fd6-9ef9-410ac207de3f', // This is the ONLY mandatory field that you need to supply.
-        authority: 'https://login.microsoftonline.com/common', // Replace the placeholder with your tenant subdomain 
+        clientId: 'cf0e4551-0703-49ac-bbf2-d866a75a2c48', // This is the ONLY mandatory field that you need to supply.
+        authority: 'https://login.microsoftonline.com/hosting.is', // Replace the placeholder with your tenant subdomain 
         redirectUri: window.location.origin, // Points to window.location.origin. You must register this URI on Microsoft Entra admin center/App Registration.
         postLogoutRedirectUri: '/', // Indicates the page to navigate after logout.
         navigateToLoginRequestUrl: false, // If "true", will navigate back to the original request location before processing the auth code response.
@@ -51,13 +51,24 @@ export const msalConfig = {
 };
 
 /**
- * Scopes you add here will be prompted for user consent during sign-in.
- * By default, MSAL.js will add OIDC scopes (openid, profile, email) to any login request.
- * For more information about OIDC scopes, visit: 
- * https://docs.microsoft.com/en-us/azure/active-directory/develop/v2-permissions-and-consent#openid-connect-scopes
+ * Default login scopes for interactive sign-in (OIDC scopes only).
  */
 export const loginRequest = {
+    scopes: ["openid", "profile"],
+};
+
+/**
+ * Scopes for Log Analytics API.
+ */
+export const logAnalyticsRequest = {
     scopes: ["https://api.loganalytics.io/Data.Read"],
+};
+
+/**
+ * Scopes for Azure Resource Management (Graph) API.
+ */
+export const graphRequest = {
+    scopes: ["https://management.azure.com/user_impersonation"],
 };
 
 /**
@@ -68,3 +79,18 @@ export const loginRequest = {
 //     scopes: ["openid", "profile"],
 //     loginHint: "example@domain.net"
 // };
+
+/**
+ * Attempts to acquire token silently, falls back to interactive redirect if needed.
+ */
+export async function acquireTokenWithFallback(instance, request) {
+    try {
+        return await instance.acquireTokenSilent(request);
+    } catch (error) {
+        if (error instanceof InteractionRequiredAuthError) {
+            // Interactive login required for consent or MFA
+            return instance.acquireTokenRedirect(request);
+        }
+        throw error;
+    }
+}

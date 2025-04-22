@@ -1,67 +1,38 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Button, Field, Tag, TagPicker, TagPickerControl, TagPickerGroup, TagPickerInput, TagPickerList, TagPickerOption } from '@fluentui/react-components';
-import ErrorView from "./Error";
 
 
-export default function WorkspaceSelect({ availableWorkspaces, setAvailableWorkspaces, selectedWorkspaces, setSelectedWorkspaces, msalInstance }) {
-	const tagPickerOptions = availableWorkspaces.filter(
+export default function WorkspaceSelect({ availableWorkspaces, selectedWorkspaces, setSelectedWorkspaces }) {
+	/* const tagPickerOptions = availableWorkspaces.filter(
 		(option) => !selectedWorkspaces.some(
 			(selected) => selected.name === option.name // Assuming workspaces have an 'id' property
 			// Alternative if using name: selected.name === option.name
 		)
-	);
+	); */
 
-	const [error, setError] = useState(null);
+	const tagPickerOptions = availableWorkspaces.filter(
+		(option) => !selectedWorkspaces.includes(option)
+	  );
 
-	useEffect(() => {
-		const fetchWorkspaces = async () => {
-			try {
-				// Acquire token silently using MSAL
-				const tokenRequest = {
-					scopes: ["https://management.azure.com/user_impersonation"]
-				};
-				const tokenResponse = await msalInstance.acquireTokenSilent(tokenRequest);
-				const accessToken = tokenResponse.accessToken;
+	const [open, setOpen] = useState(false);
 
-				// Build the query payload.
-				// If you don't have any subscription IDs, you can omit the subscriptions field.
-				const payload = {
-					query: "Resources | where type =~ 'microsoft.operationalinsights/workspaces' | project name, customerId = properties.customerId"
-				};
-
-				const response = await fetch(
-					"https://management.azure.com/providers/Microsoft.ResourceGraph/resources?api-version=2022-10-01",
-					{
-						method: "POST",
-						headers: {
-							"Content-Type": "application/json",
-							"Authorization": `Bearer ${accessToken}`
-						},
-						body: JSON.stringify(payload)
-					}
-				);
-
-				if (!response.ok) {
-					throw new Error(`API error: ${response.statusText}`);
-				}
-				const data = await response.json();
-				// The results are returned in the "value" array.
-				setAvailableWorkspaces(data.data);
-				setSelectedWorkspaces(data.data);
-			} catch (err) {
-				setError(err);
-			}
-		};
-
-		fetchWorkspaces();
-	}, [msalInstance, setAvailableWorkspaces, setSelectedWorkspaces]);
+	// Workspace fetching is handled at the App level
 
 	const onOptionSelect = (event, data) => {
 		if (data.value === "no-options") {
 			return;
 		}
+		console.log("Selected option:", data.value);
 		setSelectedWorkspaces(data.selectedOptions);
 	};
+
+	const onOpenChange = (_, data) => {
+		if (!data.open && data.type === "blur") {
+			setOpen(false);
+		} else {
+			setOpen(true);
+		}
+	}
 
 	const handleAllClear = () => {
 		if (selectedWorkspaces.length > 0) {
@@ -76,11 +47,12 @@ export default function WorkspaceSelect({ availableWorkspaces, setAvailableWorks
 
 	return (
 		<div>
-			{error && <ErrorView error={error} />}
 			<Field label="Select workspaces" >
 				<TagPicker
 					onOptionSelect={onOptionSelect}
 					selectedOptions={selectedWorkspaces}
+					onOpenChange={onOpenChange}
+					open={open}
 				>
 					<TagPickerControl
 						secondaryAction={
@@ -97,7 +69,7 @@ export default function WorkspaceSelect({ availableWorkspaces, setAvailableWorks
 						<TagPickerGroup aria-label="Selected workspaces">
 							{selectedWorkspaces.map((option) => (
 								<Tag
-									key={option}
+									key={option.customerId}
 									shape="rounded"
 									value={option}
 								>
@@ -107,22 +79,17 @@ export default function WorkspaceSelect({ availableWorkspaces, setAvailableWorks
 						</TagPickerGroup>
 						<TagPickerInput aria-label="Select workspaces" />
 					</TagPickerControl>
-					<TagPickerList>
+					<TagPickerList positioning={{ position: "below", autoSize: true, pinned: true }} >
 						{tagPickerOptions.length > 0 ? (
 							tagPickerOptions.map((option) => (
 								<TagPickerOption
-									secondaryContent={option.id}
 									value={option}
-									key={option}
+									key={option.customerId}
 								>
 									{option.name}
 								</TagPickerOption>
 							))
-						) : (
-							<TagPickerOption value="no-options">
-								No options available
-							</TagPickerOption>
-						)}
+						) : "No options available" }
 					</TagPickerList>
 				</TagPicker>
 			</Field>
